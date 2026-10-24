@@ -179,6 +179,17 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/reset") {
+    const { rmSync } = await import("node:fs");
+    rmSync(POSTS_DIR, { recursive: true, force: true });
+    mkdirSync(POSTS_DIR, { recursive: true });
+    saveQueue([]);
+    log("Reset: all posts and queue cleared");
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ reset: true }));
+    return;
+  }
+
   // POST /upload — receive a post folder (multipart: caption + slides)
   if (req.method === "POST" && url.pathname === "/upload") {
     const folder = url.searchParams.get("folder");
