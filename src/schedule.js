@@ -1,29 +1,22 @@
 // Schedule configuration
-// Each entry: { accountId, posts: [{ time: "HH:MM", caption, mediaUrls }] }
 // Times are in UTC
+// mediaSource: "url" for remote URLs, "file" for local files (uploaded via Post for Me media API)
 
 export const schedule = [
   {
-    accountId: "YOUR_ACCOUNT_ID_HERE",
+    accountId: "spc_eimh6Fdlkt6s4nJvmvLmT",
+    name: "Ethan Lifts",
     posts: [
       {
-        time: "09:00",
-        caption: "Morning post #fyp #viral",
-        mediaUrls: ["https://your-cdn.com/image1.jpg"],
+        time: "18:30",
+        caption: "",
+        mediaUrls: [],
       },
       {
-        time: "18:00",
-        caption: "Evening post #fyp #viral",
-        mediaUrls: ["https://your-cdn.com/image2.jpg"],
+        time: "23:00",
+        caption: "",
+        mediaUrls: [],
       },
     ],
   },
-  // Add more accounts:
-  // {
-  //   accountId: "SECOND_ACCOUNT_ID",
-  //   posts: [
-  //     { time: "10:00", caption: "...", mediaUrls: ["..."] },
-  //     { time: "19:00", caption: "...", mediaUrls: ["..."] },
-  //   ],
-  // },
 ];

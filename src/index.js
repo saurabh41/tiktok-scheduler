@@ -1,38 +1,83 @@
 import cron from "node-cron";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createPost } from "./api.js";
 import { schedule } from "./schedule.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const QUEUE_PATH = join(__dirname, "..", "content", "queue.json");
 
 function log(msg) {
   console.log(`[${new Date().toISOString()}] ${msg}`);
 }
 
-log("TikTok Scheduler started");
-log(`Loaded ${schedule.length} account(s)`);
+function loadQueue() {
+  const raw = readFileSync(QUEUE_PATH, "utf-8");
+  return JSON.parse(raw);
+}
 
-for (const account of schedule) {
-  for (const post of account.posts) {
-    const [hour, minute] = post.time.split(":");
-    const cronExpr = `${minute} ${hour} * * *`;
+function saveQueue(queue) {
+  writeFileSync(QUEUE_PATH, JSON.stringify(queue, null, 2));
+}
 
-    cron.schedule(cronExpr, async () => {
-      log(`Posting to ${account.accountId} (scheduled ${post.time} UTC)`);
-      try {
-        const result = await createPost({
-          caption: post.caption,
-          mediaUrls: post.mediaUrls,
-          accountIds: [account.accountId],
-          tiktokOptions: {
-            privacy_status: "PUBLIC_TO_EVERYONE",
-          },
-        });
-        log(`Success: ${JSON.stringify(result)}`);
-      } catch (err) {
-        log(`Error: ${err.message}`);
-      }
-    }, { timezone: "UTC" });
+function getNextPost() {
+  const queue = loadQueue();
+  const next = queue.find((p) => !p.posted);
+  return next ? { post: next, queue } : null;
+}
 
-    log(`  Scheduled: ${post.time} UTC → "${post.caption.slice(0, 40)}..."`);
+function markPosted(queue, post) {
+  post.posted = true;
+  post.postedAt = new Date().toISOString();
+  saveQueue(queue);
+}
+
+async function publishNext(accountId, accountName) {
+  const result = getNextPost();
+  if (!result) {
+    log(`No unposted content in queue for ${accountName}. Add more to content/queue.json`);
+    return;
+  }
+
+  const { post, queue } = result;
+  log(`Publishing to ${accountName}: "${post.caption.slice(0, 50)}..."`);
+
+  try {
+    const response = await createPost({
+      caption: post.caption,
+      mediaUrls: post.mediaUrls,
+      accountIds: [accountId],
+      tiktokOptions: {
+        privacy_status: "PUBLIC_TO_EVERYONE",
+      },
+    });
+    markPosted(queue, post);
+    log(`Success: ${JSON.stringify(response)}`);
+  } catch (err) {
+    log(`Error posting to ${accountName}: ${err.message}`);
   }
 }
 
-log("All cron jobs registered. Waiting for scheduled times...");
+log("TikTok Scheduler started");
+log(`Queue: ${QUEUE_PATH}`);
+
+const queue = loadQueue();
+const remaining = queue.filter((p) => !p.posted).length;
+log(`${remaining} post(s) remaining in queue`);
+log(`${schedule.length} account(s) loaded`);
+
+for (const account of schedule) {
+  for (const slot of account.posts) {
+    const [hour, minute] = slot.time.split(":");
+    const cronExpr = `${minute} ${hour} * * *`;
+
+    cron.schedule(cronExpr, () => publishNext(account.accountId, account.name), {
+      timezone: "UTC",
+    });
+
+    log(`  Cron registered: ${slot.time} UTC → ${account.name}`);
+  }
+}
+
+log("Waiting for scheduled times...");

@@ -1,0 +1,12 @@
+[
+  {
+    "caption": "Your caption here #fyp #fitness",
+    "mediaUrls": ["https://uploaded-media-url-here.jpg"],
+    "posted": false
+  },
+  {
+    "caption": "Second post caption #fyp #gym",
+    "mediaUrls": ["https://uploaded-media-url-here-2.jpg"],
+    "posted": false
+  }
+]

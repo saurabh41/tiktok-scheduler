@@ -53,3 +53,33 @@ export async function listPosts() {
   if (!res.ok) throw new Error(`List posts failed: ${res.status} ${await res.text()}`);
   return res.json();
 }
+
+export async function getUploadUrl(filename, contentType) {
+  const res = await fetch(`${BASE_URL}/media/create-upload-url`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ filename, content_type: contentType }),
+  });
+  if (!res.ok) throw new Error(`Upload URL failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+export async function uploadFile(filePath) {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const ext = path.default.extname(filePath).toLowerCase();
+  const contentType = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".mp4": "video/mp4", ".webp": "image/webp" }[ext] || "application/octet-stream";
+  const filename = path.default.basename(filePath);
+
+  const { upload_url, media_url } = await getUploadUrl(filename, contentType);
+
+  const fileBuffer = fs.readFileSync(filePath);
+  const uploadRes = await fetch(upload_url, {
+    method: "PUT",
+    headers: { "Content-Type": contentType },
+    body: fileBuffer,
+  });
+  if (!uploadRes.ok) throw new Error(`File upload failed: ${uploadRes.status}`);
+
+  return media_url;
+}
