@@ -6,7 +6,8 @@
     "start": "node src/index.js",
     "connect": "node src/connect.js",
     "post": "node src/post-now.js",
-    "upload": "node src/upload.js"
+    "upload": "node src/upload.js",
+    "push-posts": "node src/push-posts.js"
   },
   "dependencies": {
     "node-cron": "^3.0.3"
