@@ -11,7 +11,6 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPost, uploadFile } from "./api.js";
 import { schedule } from "./schedule.js";
-import { getNextCommand, clearSession } from "./ai-navigate.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.DATA_DIR || "/data";
@@ -188,40 +187,6 @@ const server = createServer(async (req, res) => {
     log("Reset: all posts and queue cleared");
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ reset: true }));
-    return;
-  }
-
-  // POST /ai-navigate — AI vision agent for Voice Control
-  if (req.method === "POST" && url.pathname === "/ai-navigate") {
-    const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
-    const body = JSON.parse(Buffer.concat(chunks).toString());
-
-    const sessionId = body.sessionId || "default";
-    const screenshot = body.screenshot;
-
-    if (!screenshot) {
-      res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "screenshot (base64) is required" }));
-      return;
-    }
-
-    log(`AI navigate: session=${sessionId}`);
-    const result = await getNextCommand(screenshot, sessionId);
-    log(`AI navigate: command="${result.command}" step=${result.step}`);
-
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(result));
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/ai-navigate/reset") {
-    const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
-    const body = JSON.parse(Buffer.concat(chunks).toString());
-    clearSession(body.sessionId || "default");
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ cleared: true }));
     return;
   }
 
